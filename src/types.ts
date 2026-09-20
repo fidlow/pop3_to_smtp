@@ -47,7 +47,7 @@ export interface Target {
   to: string;
   /** Dossier IMAP où déposer. Vide = INBOX. */
   folder: string;
-  /** Déposer le message déjà lu (mode `imap`). */
+  /** Déposer/importer le message déjà lu (modes `imap` et `gmail-api`). */
   markRead: boolean;
   /**
    * Identifiants OAuth du client Google (mode `gmail-api`). Ils viennent de la

@@ -134,7 +134,7 @@ export class ForwarderService {
         );
       }
 
-      if (batch.length) channel = await openChannel(target, this.smtp);
+      if (batch.length) channel = await openChannel(target, this.smtp, source.name);
 
       for (const item of batch) {
         const result = await this.forwardOne(client, channel!, source, target, item, maxBytes);

@@ -1,6 +1,6 @@
 import { env } from '../env';
 import type { Target } from '../types';
-import { importMessage, verifyAccess } from './gmail-api';
+import { ensureLabel, importMessage, verifyAccess } from './gmail-api';
 import { encodeWord, makeMessageId, rfc2822Date } from './headers';
 import { ImapClient } from './imap';
 import type { RewriteResult } from './rewrite';
@@ -25,12 +25,17 @@ export interface DeliveryChannel {
 export async function openChannel(
   target: Target,
   smtp: SmtpService,
+  sourceName = '',
 ): Promise<DeliveryChannel> {
   // L'API Gmail est sans état : chaque import est une requête HTTP, il n'y a
   // pas de session à tenir ouverte ni à refermer.
   if (target.kind === 'gmail-api') {
+    // Une résolution par relève, pas par message : le nom de la source devient
+    // un libellé Gmail, créé au premier besoin puis réutilisé.
+    const sourceLabelId = await ensureLabel(target, sourceName);
     return {
-      deliver: (message) => importMessage(target, message.message),
+      deliver: (message) =>
+        importMessage(target, message.message, sourceLabelId ? [sourceLabelId] : []),
       close: () => undefined,
     };
   }
