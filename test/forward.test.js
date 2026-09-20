@@ -478,7 +478,7 @@ test('destination API Gmail : le message est importé sans réécriture', async 
   assert.equal(entry.forwarded, 1);
   assert.equal(google.state.imports.length, 1);
 
-  const { head, body } = splitMessage(google.state.imports[0].body);
+  const { head, body } = splitMessage(google.state.imports[0].message);
   assert.equal(getHeader(head, 'From'), 'Jean Dupont <jean@exemple.fr>');
   assert.equal(getHeader(head, 'X-Original-From'), undefined);
   assert.equal(getHeader(head, 'Delivered-To'), 'moi@gmail.com');
