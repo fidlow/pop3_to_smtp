@@ -2,6 +2,32 @@
 
 const http = require('node:http');
 
+function parseMultipartImport(contentType, body) {
+  const match = /boundary="?([^";]+)"?/i.exec(contentType || '');
+  if (!match) return { metadata: null, message: body };
+
+  const boundary = match[1];
+  const jsonMarker = Buffer.from('Content-Type: application/json; charset=UTF-8\r\n\r\n');
+  const messageMarker = Buffer.from('Content-Type: message/rfc822\r\n\r\n');
+  const delimiter = Buffer.from(`\r\n--${boundary}`);
+
+  const jsonStart = body.indexOf(jsonMarker);
+  const messageStart = body.indexOf(messageMarker);
+  if (jsonStart < 0 || messageStart < 0) return { metadata: null, message: body };
+
+  const jsonBodyStart = jsonStart + jsonMarker.length;
+  const jsonEnd = body.indexOf(delimiter, jsonBodyStart);
+  const messageBodyStart = messageStart + messageMarker.length;
+  const messageEnd = body.indexOf(Buffer.from(`\r\n--${boundary}--`), messageBodyStart);
+
+  if (jsonEnd < 0 || messageEnd < 0) return { metadata: null, message: body };
+
+  return {
+    metadata: JSON.parse(body.subarray(jsonBodyStart, jsonEnd).toString('utf8')),
+    message: body.subarray(messageBodyStart, messageEnd),
+  };
+}
+
 /**
  * Faux Google, pour les tests : le point de jeton OAuth et le point d'import
  * de l'API Gmail.
@@ -37,10 +63,14 @@ function startFakeGoogle(options = {}) {
       }
 
       if (url.pathname === '/upload') {
+        const contentType = req.headers['content-type'];
+        const parsed = parseMultipartImport(contentType, body);
         state.imports.push({
           body,
+          message: parsed.message,
+          metadata: parsed.metadata,
           authorization: req.headers.authorization,
-          contentType: req.headers['content-type'],
+          contentType,
           params: Object.fromEntries(url.searchParams),
         });
         if (options.importError) return send(options.importStatus ?? 403, options.importError);
